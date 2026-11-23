@@ -1,0 +1,9 @@
+# Lokale / temporäre Dateien
+.DS_Store
+*.tmp.*
+_site/
+
+# Lokale Log- & Lock-Dateien (feed_status.json wird für Ausfall-Tracking versioniert)
+logs/fetch.lock
+logs/feeds.log
+logs/feeds.log.*

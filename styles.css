@@ -1,0 +1,299 @@
+:root {
+    --primary-color: #005538;
+    --secondary-color: #8ABD24;
+    --highlight-color: #008939;
+    --background-color: #f5f1e9;
+    --card-background: #ffffff;
+    --text-color: #000000;
+    --visited-color: #5c636a;
+    --link-color: #0BA1DD;
+    --link-hover-color: #056b94;
+    --hinweistext-color: #666666;
+    --loader-bg: rgba(255, 255, 255, 0.85);
+    --highlight-font-weight: bold;
+}
+
+/* Allgemeine Stile */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    margin: 0;
+    background-color: var(--background-color);
+    overflow-x: hidden;
+    font-size: 16px;
+    line-height: 1.5;
+    color: var(--text-color);
+}
+
+header {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 18px 20px 14px 20px;
+    text-align: center;
+}
+
+h1 {
+    margin: 0;
+    font-size: 1.8em;
+}
+
+.last-updated {
+    margin: 4px 0 0 0;
+    font-size: 0.85em;
+    color: rgba(255, 255, 255, 0.85);
+    min-height: 1.2em;
+}
+
+.hinweistext {
+    text-align: center;
+    color: var(--hinweistext-color);
+    font-size: 1em;
+    padding: 10px 15%;
+}
+
+.highlight {
+    font-weight: var(--highlight-font-weight);
+    color: var(--highlight-color);
+}
+
+.source-name {
+    color: var(--hinweistext-color);
+    font-size: 0.85em;
+}
+
+/* CSS Grid Layout */
+.category-container, .date-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 20px;
+    padding: 15px 20px 20px 20px;
+    max-width: 1800px;
+    margin: 0 auto;
+    box-sizing: border-box;
+}
+
+.feed-column, .date-block {
+    border: 1px solid var(--secondary-color);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    border-radius: 5px;
+    background-color: var(--card-background);
+    padding: 15px;
+    box-sizing: border-box;
+}
+
+.category-header {
+    font-size: 1.2em;
+    color: var(--primary-color);
+    margin: 10px 0 15px 0;
+    text-align: left;
+}
+
+/* Navigation und Tabs */
+#tabContainer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin: 15px 15px 0 15px;
+    flex-wrap: wrap;
+}
+
+.nav-group {
+    display: inline-flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+#tabContainer button {
+    padding: 10px 15px;
+    font-size: 1em;
+    font-weight: var(--highlight-font-weight);
+    color: var(--primary-color);
+    border: 2px solid var(--secondary-color);
+    background-color: var(--card-background);
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+#tabContainer button:hover {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+#tabContainer button.active {
+    background-color: var(--highlight-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+#tabContainer button:focus-visible,
+.collapsible-toggle:focus-visible,
+ul li a:focus-visible {
+    outline: 3px solid var(--link-color);
+    outline-offset: 2px;
+    border-radius: 3px;
+}
+
+@media (max-width: 480px) {
+    #tabContainer {
+        gap: 8px;
+        margin: 16px 10px 5px 10px;
+    }
+    .nav-group { gap: 8px; }
+    #tabContainer button { padding: 8px 10px; font-size: 0.85em; }
+    header { padding: 12px 10px 10px 10px; }
+    h1 { font-size: 1.5em; }
+    .category-container, .date-container { grid-template-columns: 1fr; padding: 10px; }
+}
+
+/* Listen-Styling */
+ul {
+    padding: 0;
+    margin: 0;
+    list-style-type: none;
+}
+
+ul li {
+    position: relative;
+    padding-left: 15px;
+    margin-bottom: 8px;
+}
+
+ul li::before {
+    content: '\2022';
+    color: var(--secondary-color);
+    position: absolute;
+    left: 0;
+    top: 0;
+}
+
+ul li a {
+    text-decoration: none;
+    color: var(--text-color);
+    transition: color 0.2s ease;
+}
+
+ul li a:visited {
+    color: var(--visited-color);
+}
+
+ul li.highlight a,
+ul li.highlight a:visited {
+    color: var(--highlight-color);
+}
+
+ul li a:hover {
+    color: var(--link-color);
+}
+
+/* Ladeanzeige */
+#loadingIndicator {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    height: 100vh;
+    font-size: 1em;
+    color: var(--primary-color);
+    background-color: var(--loader-bg);
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 9999;
+}
+
+#loadingIndicator[hidden] {
+    display: none;
+}
+
+.loader {
+    border: 8px solid #f3f3f3;
+    border-top: 8px solid var(--highlight-color);
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Datumsansicht */
+.date-block h2 {
+    font-size: 1.3em;
+    color: var(--primary-color);
+    margin-bottom: 15px;
+    text-align: center;
+    border-bottom: 1px dashed var(--secondary-color);
+    padding-bottom: 5px;
+}
+
+.date-block h3 {
+    font-size: 1em;
+    color: var(--highlight-color);
+    margin-top: 15px;
+    text-align: left;
+}
+
+.highlight-section {
+    border-bottom: 1px dashed var(--secondary-color);
+    padding-bottom: 15px;
+    margin-bottom: 15px;
+}
+
+/* --- COLLAPSIBLE LOGIC & ZÄHLER --- */
+.collapsible-header {
+    user-select: none;
+}
+
+.collapsible-toggle {
+    display: inline-flex;
+    align-items: center;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.collapsible-toggle:hover {
+    opacity: 0.7;
+}
+
+.caret {
+    font-size: 0.8em;
+    color: var(--secondary-color);
+    margin-right: 5px;
+    display: inline-block;
+    width: 15px;
+    flex-shrink: 0;
+}
+
+.article-count {
+    color: var(--hinweistext-color);
+    font-weight: normal;
+    font-size: 0.85em;
+    margin-left: 5px;
+}
+
+.collapsible-content {
+    display: block;
+}
+
+.collapsible-content.collapsed {
+    display: none;
+}
+
+.no-articles {
+    color: var(--hinweistext-color);
+    font-size: 0.9em;
+    margin: 0;
+}

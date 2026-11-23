@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Aktuelle Nachrichten für Grüne Mitte. Interner Überblick über politische und lokale Nachrichten.">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="theme-color" content="#005538">
+    <title>Nachrichten aus Berlin 🌻 Mitte</title>
+    <link rel="stylesheet" href="styles.css?v=2">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <link rel="apple-touch-icon" sizes="128x128" href="favicon-128x128.png">
+</head>
+<body>
+    <header>
+        <h1 title="Der Name Berlin ist ursprünglich slawisch. Zugrunde liegt altpolabisch birl-, berl- ‚Sumpf, Morast‘, ergänzt um das die Lage bezeichnende slawische Suffix -in.">Nachrichten aus Berlin 🌻 Mitte</h1>
+        <p id="lastUpdated" class="last-updated" aria-live="polite"></p>
+    </header>
+
+    <!-- Haupt-Navigation -->
+    <nav id="main-nav" aria-label="Hauptnavigation">
+        <div id="tabContainer">
+            <div class="nav-group" role="tablist" aria-label="Ansichten">
+                <button id="categoryTab" type="button" role="tab" aria-selected="false">📰 Quelle</button>
+                <button id="dateTab" type="button" role="tab" aria-selected="false">📅 Datum</button>
+            </div>
+            <div class="nav-group" role="group" aria-label="Region">
+                <button class="config-button" type="button" data-config="mitte" aria-pressed="false">🏘️ Mitte</button>
+                <button class="config-button" type="button" data-config="berlin" aria-pressed="false">🏛️ Berlin</button>
+            </div>
+            <div class="nav-group" role="group" aria-label="Filter">
+                <button id="radarOnlyButton" type="button" aria-pressed="false" title="Nur Schlagwort-Treffer anzeigen">🎯 Radar</button>
+            </div>
+        </div>
+    </nav>
+
+    <main id="feeds" class="category-container" tabindex="-1" aria-live="polite">
+        <!-- Feeds werden hier dynamisch geladen -->
+    </main>
+
+    <div id="loadingIndicator" aria-live="polite" aria-busy="false" hidden>
+        <div class="loader" aria-hidden="true"></div>
+        <span>Feeds werden geladen...</span>
+    </div>
+
+    <noscript>
+        <div class="hinweistext">
+            JavaScript ist deaktiviert. Diese Seite erfordert JavaScript, um die Feeds anzuzeigen.
+        </div>
+    </noscript>
+
+    <script src="rss-feeds.js?v=2" defer></script>
+</body>
+</html>
