@@ -268,6 +268,15 @@ function cleanArticleTitle($rawTitle) {
     return ['title' => trim($t), 'paywall' => $paywall];
 }
 
+function isFetchRssPlaceholderItem($title, $link) {
+    $t = mb_strtolower(trim((string)$title), 'UTF-8');
+    $l = trim((string)$link);
+    if (preg_match('/^https?:\/\/(www\.)?fetchrss\.com\/?$/i', $l)) {
+        return true;
+    }
+    return in_array($t, ['feed is deleted', 'this feed has been deleted', 'feed deleted', 'feed has been removed'], true);
+}
+
 function extractItemDate($item) {
     foreach (['pubDate', 'dc:date', 'isoDate', 'updated', 'published'] as $key) {
         if (!empty($item[$key])) {
@@ -526,7 +535,45 @@ function createJsonFile($configKey, $filePath, $feedConfigs, $keywords, &$status
 
             $parsedFeed = parseFeedXml($rss);
             $channelLink = $parsedFeed['channel_link'];
-            $newItems = $parsedFeed['items'];
+            $rawNewItems = $parsedFeed['items'];
+
+            // Prüfen, ob FetchRSS nur eine "Feed is deleted"-Platzhaltermeldung liefert
+            $placeholderDetected = false;
+            $newItems = [];
+            foreach ($rawNewItems as $ni) {
+                $niTitle = normalizeStringField($ni['title'] ?? '');
+                $niLink = normalizeStringField($ni['link'] ?? '');
+                if (isFetchRssPlaceholderItem($niTitle, $niLink)) {
+                    $placeholderDetected = true;
+                    continue;
+                }
+                $newItems[] = $ni;
+            }
+
+            if ($placeholderDetected && count($newItems) === 0) {
+                $failures = ($prev['consecutive_failures'] ?? 0) + 1;
+                $stats['error']++;
+                $errMsg = 'FetchRSS-Feed wurde gelöscht ("Feed is deleted")';
+                $groupStatus[$name] = [
+                    'url' => $primaryUrl,
+                    'status' => 'error',
+                    'http_code' => $fetch['http_code'] ?? 200,
+                    'method' => $fetch['method'] ?? null,
+                    'duration_ms' => $durationMs,
+                    'fetched_items' => 0,
+                    'active_items' => 0,
+                    'newest_item_date' => $prev['newest_item_date'] ?? null,
+                    'last_checked' => $nowIso,
+                    'last_success' => $prev['last_success'] ?? null,
+                    'consecutive_failures' => $failures,
+                    'consecutive_empty' => $prev['consecutive_empty'] ?? 0,
+                    'last_error' => $errMsg
+                ];
+                writeFeedLog('ERROR', sprintf('[%s] %s: %s (Ausfälle in Folge: %d, %dms) | %s', $configKey, $name, $errMsg, $failures, $durationMs, $primaryUrl));
+                $results[$name] = ['channel' => ['item' => []]];
+                continue;
+            }
+
             $oldItems = isset($existingData[$name]['channel']['item']) ? ((is_array($existingData[$name]['channel']['item']) && isset($existingData[$name]['channel']['item'][0])) ? $existingData[$name]['channel']['item'] : [$existingData[$name]['channel']['item']]) : [];
 
             // Index der bestehenden Items (bewahrt das ursprüngliche Datum bei undatierten Artikeln)
@@ -559,6 +606,9 @@ function createJsonFile($configKey, $filePath, $feedConfigs, $keywords, &$status
                 }
 
                 $linkText = normalizeStringField($item['link'] ?? '');
+                if (isFetchRssPlaceholderItem($rawTitle, $linkText)) {
+                    continue;
+                }
                 if ($linkText !== '' && !preg_match('/^https?:\/\//i', $linkText) && $channelLink !== '') {
                     $linkText = rtrim($channelLink, '/') . '/' . ltrim($linkText, '/');
                 }
