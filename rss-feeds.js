@@ -216,7 +216,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const countSpan = document.createElement('span');
         countSpan.className = 'article-count';
-        countSpan.textContent = `(${count})`;
+        countSpan.textContent = String(count);
 
         btn.append(caret, label, countSpan);
         heading.appendChild(btn);
@@ -310,7 +310,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const articleTemplate = document.createElement('template');
-    articleTemplate.innerHTML = `<li class="article-item"><span class="article-link"></span><span class="source-name" aria-hidden="true"></span></li>`;
+    articleTemplate.innerHTML = `<li class="article-item"><span class="article-link"></span></li>`;
 
     function displayFeedsByDate(data) {
         try {
@@ -340,10 +340,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 return new Date(dB[2], dB[1] - 1, dB[0]) - new Date(dA[2], dA[1] - 1, dA[0]);
             });
 
+            const todayStr = formatDate(new Date());
             const frag = document.createDocumentFragment();
             sortedDates.forEach(dateStr => {
                 const dateBlock = document.createElement('div');
                 dateBlock.classList.add('date-block');
+                const isToday = dateStr === todayStr;
+                if (isToday) dateBlock.classList.add('is-today');
 
                 const dParts = dateStr.split('.');
                 const dObj = new Date(dParts[2], dParts[1] - 1, dParts[0]);
@@ -355,6 +358,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     month: '2-digit',
                     year: 'numeric'
                 });
+                if (isToday) {
+                    const badge = document.createElement('span');
+                    badge.className = 'today-badge';
+                    badge.textContent = 'Heute';
+                    dateHeader.appendChild(badge);
+                }
                 dateBlock.appendChild(dateHeader);
 
                 const highlightedItems = [];
@@ -370,7 +379,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         const node = articleTemplate.content.cloneNode(true);
                         const li = node.querySelector('li');
                         li.querySelector('.article-link').appendChild(safeLinkElement(art.link, art.title));
-                        li.querySelector('.source-name').textContent = ` ${art.source}`;
                         if (art.highlightClass) {
                             li.classList.add(art.highlightClass);
                             highlightedItems.push(art);
@@ -381,8 +389,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 if (highlightedItems.length > 0) {
+                    const radarBox = document.createElement('div');
+                    radarBox.className = 'radar-box';
                     const alertHeader = document.createElement('h3');
-                    alertHeader.textContent = 'Schlagwort-Radar';
+                    alertHeader.textContent = '🎯 Schlagwort-Radar';
                     const alertList = document.createElement('ul');
                     alertList.className = 'highlight-section';
                     highlightedItems.forEach(item => {
@@ -392,12 +402,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         li.appendChild(strong);
                         const span = document.createElement('span');
                         span.className = 'source-name';
-                        span.textContent = ` ${item.source}`;
+                        span.textContent = `· ${item.source}`;
                         li.appendChild(span);
                         alertList.appendChild(li);
                     });
-                    dateBlock.insertBefore(alertList, dateBlock.childNodes[1] || null);
-                    dateBlock.insertBefore(alertHeader, dateBlock.childNodes[1] || null);
+                    radarBox.append(alertHeader, alertList);
+                    dateBlock.insertBefore(radarBox, dateBlock.childNodes[1] || null);
                 }
                 frag.appendChild(dateBlock);
             });
