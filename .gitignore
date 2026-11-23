@@ -3,7 +3,7 @@
 *.tmp.*
 _site/
 
-# Lokale Log- & Lock-Dateien (feed_status.json wird für Ausfall-Tracking versioniert)
-logs/fetch.lock
-logs/feeds.log
-logs/feeds.log.*
+# Generierte Feed-Daten (werden in GitHub Actions auf Branch feeds-data gespeichert)
+feeds_berlin.json
+feeds_mitte.json
+logs/

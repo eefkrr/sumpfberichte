@@ -19,6 +19,40 @@ document.addEventListener('DOMContentLoaded', () => {
     let activeView = 'dates';
     let radarOnly = false;
     let currentData = null;
+    const previousVisitByConfig = {};
+
+    function getPreviousVisit(configKey) {
+        if (Object.prototype.hasOwnProperty.call(previousVisitByConfig, configKey)) {
+            return previousVisitByConfig[configKey];
+        }
+        let prev = null;
+        try {
+            const raw = localStorage.getItem(`lastVisit_${configKey}`);
+            if (raw) {
+                const parsed = parseInt(raw, 10);
+                if (!isNaN(parsed)) prev = parsed;
+            }
+            localStorage.setItem(`lastVisit_${configKey}`, String(Date.now()));
+        } catch (e) {}
+        previousVisitByConfig[configKey] = prev;
+        return prev;
+    }
+
+    function appendArticleBadges(containerEl, art) {
+        if (art.isNew) {
+            const newBadge = document.createElement('span');
+            newBadge.className = 'new-badge';
+            newBadge.textContent = 'Neu';
+            containerEl.appendChild(newBadge);
+        }
+        if (art.paywall) {
+            const plusBadge = document.createElement('span');
+            plusBadge.className = 'plus-badge';
+            plusBadge.title = 'Bezahlartikel';
+            plusBadge.textContent = 'Plus';
+            containerEl.appendChild(plusBadge);
+        }
+    }
 
     function showLoading(on) {
         if (!loadingIndicator) return;
@@ -263,6 +297,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const daysToShow = data.config?.days_to_show || 10;
         const keywordRegexes = compileKeywordRegexes(data.config?.keywords || []);
         const now = new Date();
+        const prevVisit = getPreviousVisit(activeConfig);
 
         Object.keys(data.feeds || {}).forEach(originalSource => {
             const feed = data.feeds[originalSource];
@@ -276,6 +311,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     pubDate: now,
                     dateStr: formatDate(now),
                     isError: true,
+                    paywall: false,
+                    isNew: false,
                     highlightClass: ''
                 });
                 return;
@@ -302,6 +339,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     pubDate,
                     dateStr: formatDate(pubDate),
                     isError: false,
+                    paywall: Boolean(item.paywall),
+                    isNew: prevVisit !== null && pubDate.getTime() > prevVisit,
                     highlightClass
                 });
             });
@@ -378,7 +417,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     items.forEach(art => {
                         const node = articleTemplate.content.cloneNode(true);
                         const li = node.querySelector('li');
-                        li.querySelector('.article-link').appendChild(safeLinkElement(art.link, art.title));
+                        const linkWrap = li.querySelector('.article-link');
+                        linkWrap.appendChild(safeLinkElement(art.link, art.title));
+                        appendArticleBadges(linkWrap, art);
                         if (art.highlightClass) {
                             li.classList.add(art.highlightClass);
                             highlightedItems.push(art);
@@ -400,6 +441,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         const strong = document.createElement('strong');
                         strong.appendChild(safeLinkElement(item.link, item.title));
                         li.appendChild(strong);
+                        appendArticleBadges(li, item);
                         const span = document.createElement('span');
                         span.className = 'source-name';
                         span.textContent = `· ${item.source}`;
@@ -455,6 +497,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     items.forEach(art => {
                         const li = document.createElement('li');
                         li.appendChild(safeLinkElement(art.link, art.title));
+                        appendArticleBadges(li, art);
                         if (art.highlightClass) li.classList.add(art.highlightClass);
                         ul.appendChild(li);
                     });

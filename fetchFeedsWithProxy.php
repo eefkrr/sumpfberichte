@@ -249,6 +249,25 @@ function normalizeStringField($val) {
     return '';
 }
 
+function cleanArticleTitle($rawTitle) {
+    // Zeilenumbrüche und Mehrfach-Leerzeichen normalisieren
+    $t = preg_replace('/[\r\n\t]+/u', ' ', (string)$rawTitle);
+    $t = preg_replace('/\s{2,}/u', ' ', trim($t));
+
+    // Paywall-Markierung "(+)" erkennen und aus dem Titel entfernen
+    $paywall = false;
+    if (preg_match('/^\(\+\)\s*/u', $t)) {
+        $paywall = true;
+        $t = preg_replace('/^\(\+\)\s*/u', '', $t);
+    }
+
+    // Typische FetchRSS-Präfixe sauber formatieren
+    $t = preg_replace('/^(Update|Live)\s+(?!:)/u', '$1: ', $t);
+    $t = preg_replace('/^meinung\s*[•·-]\s*/iu', 'Meinung: ', $t);
+
+    return ['title' => trim($t), 'paywall' => $paywall];
+}
+
 function extractItemDate($item) {
     foreach (['pubDate', 'dc:date', 'isoDate', 'updated', 'published'] as $key) {
         if (!empty($item[$key])) {
@@ -528,8 +547,14 @@ function createJsonFile($configKey, $filePath, $feedConfigs, $keywords, &$status
                 if (empty($item)) continue;
 
                 // FetchRSS-Bugfix: Überspringt "Monster-Items" (> 300 Zeichen Titel)
-                $titleText = normalizeStringField($item['title'] ?? '');
-                if ($titleText === '' || mb_strlen($titleText, 'UTF-8') > 300) {
+                $rawTitle = normalizeStringField($item['title'] ?? '');
+                if ($rawTitle === '' || mb_strlen($rawTitle, 'UTF-8') > 300) {
+                    continue;
+                }
+                $cleaned = cleanArticleTitle($rawTitle);
+                $titleText = $cleaned['title'];
+                $isPaywall = $cleaned['paywall'] || !empty($item['paywall']);
+                if ($titleText === '') {
                     continue;
                 }
 
@@ -548,11 +573,15 @@ function createJsonFile($configKey, $filePath, $feedConfigs, $keywords, &$status
                         $pubDate = $oldDatesByHash[$hash] ?? date(DATE_RSS);
                     }
                     // Verschlanktes Item: nur vom Frontend genutzte Felder speichern
-                    $uniqueMap[$hash] = [
+                    $entryData = [
                         'title' => $titleText,
                         'link' => $linkText,
                         'pubDate' => $pubDate
                     ];
+                    if ($isPaywall) {
+                        $entryData['paywall'] = true;
+                    }
+                    $uniqueMap[$hash] = $entryData;
                 }
             }
 

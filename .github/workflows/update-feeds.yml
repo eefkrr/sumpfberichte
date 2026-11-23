@@ -2,14 +2,10 @@ name: Update Feeds & Deploy Pages
 
 on:
   schedule:
-    # Stündlich um :15 (UTC) – auf GitHub Actions zuverlässig & kostenlos
+    # Stündlich um :15 (UTC)
     - cron: '15 * * * *'
   push:
     branches: ['main']
-    paths-ignore:
-      - 'feeds_berlin.json'
-      - 'feeds_mitte.json'
-      - 'logs/**'
   workflow_dispatch:
 
 permissions:
@@ -29,8 +25,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Repository auschecken
+      - name: Code-Branch (main) auschecken
         uses: actions/checkout@v4
+
+      - name: Vorherige Feed-Daten aus Branch feeds-data laden
+        run: |
+          if git ls-remote --exit-code --heads origin feeds-data >/dev/null 2>&1; then
+            git fetch origin feeds-data:feeds-data
+            mkdir -p logs
+            git show feeds-data:feeds_berlin.json > feeds_berlin.json 2>/dev/null || true
+            git show feeds-data:feeds_mitte.json > feeds_mitte.json 2>/dev/null || true
+            git show feeds-data:logs/feed_status.json > logs/feed_status.json 2>/dev/null || true
+          else
+            echo "Branch feeds-data existiert noch nicht – starte Erstbefüllung."
+          fi
 
       - name: PHP einrichten
         uses: shivammathur/setup-php@v2
@@ -46,14 +54,30 @@ jobs:
         if: always()
         run: php fetchFeedsWithProxy.php --summary-md >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Aktualisierte Feeds & Status-Log committen
+      - name: Aktualisierte Feed-Daten auf Branch feeds-data speichern
         run: |
+          DATA_DIR=$(mktemp -d)
+          mkdir -p "$DATA_DIR/logs"
+          cp feeds_berlin.json feeds_mitte.json "$DATA_DIR/"
+          cp logs/feed_status.json "$DATA_DIR/logs/"
+
+          if git show-ref --verify --quiet refs/heads/feeds-data; then
+            git worktree add "$DATA_DIR/wt" feeds-data
+          else
+            git worktree add --orphan -b feeds-data "$DATA_DIR/wt"
+          fi
+
+          mkdir -p "$DATA_DIR/wt/logs"
+          cp "$DATA_DIR/feeds_berlin.json" "$DATA_DIR/feeds_mitte.json" "$DATA_DIR/wt/"
+          cp "$DATA_DIR/logs/feed_status.json" "$DATA_DIR/wt/logs/"
+
+          cd "$DATA_DIR/wt"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add feeds_berlin.json feeds_mitte.json logs/feed_status.json
           if ! git diff --cached --quiet; then
-            git commit -m "chore: update feeds [skip ci]"
-            git push
+            git commit -m "chore: update feeds"
+            git push origin feeds-data
           else
             echo "Keine Änderungen an den Feeds."
           fi
