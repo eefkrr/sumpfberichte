@@ -24,7 +24,7 @@ jobs:
 
     steps:
       - name: Code-Branch (main) auschecken
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Vorherige Feed-Daten aus Branch feeds-data laden
         run: |
@@ -55,20 +55,23 @@ jobs:
       - name: Aktualisierte Feed-Daten schlank auf Branch feeds-data speichern
         run: |
           DATA_DIR=$(mktemp -d)
-          mkdir -p "$DATA_DIR/wt/logs"
-          cp feeds_berlin.json feeds_mitte.json "$DATA_DIR/"
-          cp logs/feed_status.json "$DATA_DIR/logs/"
+          mkdir -p "$DATA_DIR/data/logs"
+          cp feeds_berlin.json feeds_mitte.json "$DATA_DIR/data/"
+          cp logs/feed_status.json "$DATA_DIR/data/logs/"
 
           # Immer als einzelner Orphan-Commit speichern, damit das Repo dauerhaft klein bleibt
-          git worktree add --orphan -b feeds-data-next "$DATA_DIR/wt"
-          mkdir -p "$DATA_DIR/wt/logs"
-          cp "$DATA_DIR/feeds_berlin.json" "$DATA_DIR/feeds_mitte.json" "$DATA_DIR/wt/"
-          cp "$DATA_DIR/logs/feed_status.json" "$DATA_DIR/wt/logs/"
-
+          git worktree add --detach "$DATA_DIR/wt"
           cd "$DATA_DIR/wt"
+          git checkout --orphan feeds-data-next
+          git rm -rf . >/dev/null 2>&1 || true
+
+          mkdir -p logs
+          cp "$DATA_DIR/data/feeds_berlin.json" "$DATA_DIR/data/feeds_mitte.json" ./
+          cp "$DATA_DIR/data/logs/feed_status.json" ./logs/
+
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add feeds_berlin.json feeds_mitte.json logs/feed_status.json
+          git add -f feeds_berlin.json feeds_mitte.json logs/feed_status.json
           git commit -m "chore: update feeds"
           git push --force origin HEAD:refs/heads/feeds-data
 
