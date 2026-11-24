@@ -2,8 +2,8 @@ name: Update Feeds & Deploy Pages
 
 on:
   schedule:
-    # Stündlich um :15 (UTC)
-    - cron: '15 * * * *'
+    # Alle 30 Min. zu wenig frequentierten Minuten (:07 und :37) für zuverlässigere GitHub-Cron-Läufe
+    - cron: '7,37 * * * *'
   push:
     branches: ['main']
   workflow_dispatch:
