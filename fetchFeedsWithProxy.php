@@ -13,7 +13,7 @@ if (PHP_SAPI !== 'cli' && !empty($_SERVER['REMOTE_ADDR'])) {
 
 date_default_timezone_set('Europe/Berlin');
 
-define('USER_AGENT', 'CustomFeedReader/1.0');
+define('USER_AGENT', 'Mozilla/5.0 (compatible; SumpfberichteFeedReader/1.0; +https://sumpfberichte.de)');
 define('CONFIG_FILE', __DIR__ . '/feeds.config.json');
 define('LOG_DIR', __DIR__ . '/logs');
 define('LOG_FILE', LOG_DIR . '/feeds.log');
