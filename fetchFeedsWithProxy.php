@@ -438,7 +438,7 @@ function loadAppConfig() {
     return $cfg;
 }
 
-function createJsonFile($configKey, $filePath, $feedConfigs, $keywords, &$statusReport) {
+function createJsonFile($configKey, $filePath, $feedConfigs, $keywords, $excludeKeywords, &$statusReport) {
     $currentConfig = $feedConfigs[$configKey];
     $results = [];
     $prevGroupStatus = $statusReport['groups'][$configKey] ?? [];
@@ -762,7 +762,8 @@ function createJsonFile($configKey, $filePath, $feedConfigs, $keywords, &$status
             'days_to_show' => $daysToShow,
             'max_items' => $maxItems,
             'last_updated' => date('c'),
-            'keywords' => $keywords
+            'keywords' => $keywords,
+            'exclude_keywords' => $excludeKeywords
         ],
         'feeds' => $results
     ];
@@ -861,9 +862,10 @@ try {
     $appConfig = loadAppConfig();
     $feedConfigs = $appConfig['groups'];
     $keywords = $appConfig['keywords'] ?? [];
+    $excludeKeywords = $appConfig['exclude_keywords'] ?? [];
 
-    createJsonFile('mitte', $jsonFilePathMitte, $feedConfigs, $keywords, $statusReport);
-    createJsonFile('berlin', $jsonFilePathBerlin, $feedConfigs, $keywords, $statusReport);
+    createJsonFile('mitte', $jsonFilePathMitte, $feedConfigs, $keywords, $excludeKeywords, $statusReport);
+    createJsonFile('berlin', $jsonFilePathBerlin, $feedConfigs, $keywords, $excludeKeywords, $statusReport);
 
     $totalDuration = round(microtime(true) - $runStartedAt, 2);
     $statusReport['last_run'] = date('c');

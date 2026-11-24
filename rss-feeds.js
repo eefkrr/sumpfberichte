@@ -222,9 +222,17 @@ document.addEventListener('DOMContentLoaded', () => {
             });
     }
 
-    function highlightKeywords(title, keywordRegexes) {
+    function compileExcludeRegexes(excludes) {
+        return (excludes || [])
+            .filter(ex => typeof ex === 'string' && ex.trim() !== '')
+            .map(ex => new RegExp(`(?<![\\p{L}\\p{N}_])${escapeRegex(ex.trim())}(?![\\p{L}\\p{N}_])`, 'iu'));
+    }
+
+    function highlightKeywords(title, keywordRegexes, excludeRegexes) {
         if (!title || !keywordRegexes.length) return '';
-        if (/\bGrüne Woche\b/i.test(title)) return '';
+        for (const exRe of excludeRegexes) {
+            if (exRe.test(title)) return '';
+        }
         for (const re of keywordRegexes) {
             if (re.test(title)) return 'highlight';
         }
@@ -296,6 +304,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const articles = [];
         const daysToShow = data.config?.days_to_show || 10;
         const keywordRegexes = compileKeywordRegexes(data.config?.keywords || []);
+        const excludeRegexes = compileExcludeRegexes(data.config?.exclude_keywords || ['Grüne Woche']);
         const now = new Date();
         const prevVisit = getPreviousVisit(activeConfig);
 
@@ -329,7 +338,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!pubDate || pubDate > now || !isWithinLastDays(pubDate, daysToShow)) return;
 
                 const title = item.title || '(kein Titel)';
-                const highlightClass = highlightKeywords(title, keywordRegexes);
+                const highlightClass = highlightKeywords(title, keywordRegexes, excludeRegexes);
                 if (radarOnly && !highlightClass) return;
 
                 articles.push({
