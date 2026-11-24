@@ -435,6 +435,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 if (highlightedItems.length > 0) {
+                    highlightedItems.sort((a, b) => {
+                        if (a.isNew !== b.isNew) return a.isNew ? -1 : 1;
+                        return b.pubDate - a.pubDate;
+                    });
                     const radarBox = document.createElement('div');
                     radarBox.className = 'radar-box';
                     const alertHeader = document.createElement('h3');
