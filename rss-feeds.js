@@ -212,31 +212,27 @@ document.addEventListener('DOMContentLoaded', () => {
         return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
 
-    function compileKeywordRegexes(keywords) {
-        return (keywords || [])
+    function compileCombinedKeywordRegex(keywords) {
+        const parts = (keywords || [])
             .filter(kw => typeof kw === 'string' && kw.trim() !== '')
-            .map(kw => {
-                const escaped = escapeRegex(kw.trim());
-                // Unicode-Wortgrenzen + häufige deutsche Flexionsendungen (case-insensitive)
-                return new RegExp(`(?<![\\p{L}\\p{N}_])${escaped}(?:e|en|er|es|n|s)?(?![\\p{L}\\p{N}_])`, 'iu');
-            });
+            .map(kw => escapeRegex(kw.trim()));
+        if (!parts.length) return null;
+        // Ein einzelner kombinierter Unicode-RegEx statt Dutzender Einzelprüfungen pro Artikel
+        return new RegExp(`(?<![\\p{L}\\p{N}_])(?:${parts.join('|')})(?:e|en|er|es|n|s)?(?![\\p{L}\\p{N}_])`, 'iu');
     }
 
-    function compileExcludeRegexes(excludes) {
-        return (excludes || [])
+    function compileCombinedExcludeRegex(excludes) {
+        const parts = (excludes || [])
             .filter(ex => typeof ex === 'string' && ex.trim() !== '')
-            .map(ex => new RegExp(`(?<![\\p{L}\\p{N}_])${escapeRegex(ex.trim())}(?![\\p{L}\\p{N}_])`, 'iu'));
+            .map(ex => escapeRegex(ex.trim()));
+        if (!parts.length) return null;
+        return new RegExp(`(?<![\\p{L}\\p{N}_])(?:${parts.join('|')})(?![\\p{L}\\p{N}_])`, 'iu');
     }
 
-    function highlightKeywords(title, keywordRegexes, excludeRegexes) {
-        if (!title || !keywordRegexes.length) return '';
-        for (const exRe of excludeRegexes) {
-            if (exRe.test(title)) return '';
-        }
-        for (const re of keywordRegexes) {
-            if (re.test(title)) return 'highlight';
-        }
-        return '';
+    function highlightKeywords(title, keywordRegex, excludeRegex) {
+        if (!title || !keywordRegex) return '';
+        if (excludeRegex && excludeRegex.test(title)) return '';
+        return keywordRegex.test(title) ? 'highlight' : '';
     }
 
     function createCollapsibleHeader(tagName, source, count, ul, extraClass = '') {
@@ -303,8 +299,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function getNormalizedArticles(data) {
         const articles = [];
         const daysToShow = data.config?.days_to_show || 10;
-        const keywordRegexes = compileKeywordRegexes(data.config?.keywords || []);
-        const excludeRegexes = compileExcludeRegexes(data.config?.exclude_keywords || ['Grüne Woche']);
+        const keywordRegex = compileCombinedKeywordRegex(data.config?.keywords || []);
+        const excludeRegex = compileCombinedExcludeRegex(data.config?.exclude_keywords || ['Grüne Woche']);
         const now = new Date();
         const prevVisit = getPreviousVisit(activeConfig);
 
@@ -338,7 +334,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!pubDate || pubDate > now || !isWithinLastDays(pubDate, daysToShow)) return;
 
                 const title = item.title || '(kein Titel)';
-                const highlightClass = highlightKeywords(title, keywordRegexes, excludeRegexes);
+                const highlightClass = highlightKeywords(title, keywordRegex, excludeRegex);
                 if (radarOnly && !highlightClass) return;
 
                 articles.push({

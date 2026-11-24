@@ -91,8 +91,7 @@
   "exclude_keywords": [
     "Grüne Woche",
     "Grüne Welle",
-    "Grüner Pfeil",
-    "Tim Bendzko"
+    "Grüner Pfeil"
   ],
   "groups": {
     "mitte": {
@@ -135,7 +134,6 @@
         "Spiegel (Berlin)": "https://fetchrss.com/rss/6735f7cd9cbc163441083f2267a9b16a98897553920ec822.xml",
         "Berliner Zeitung (Berlin)": "https://fetchrss.com/feed/1tBZgT1Tg4Cg1wVXak7Cj3WM.rss",
         "BZ (Berlin)": "https://fetchrss.com/feed/1tBZgT1Tg4Cg1xVUaC9um8ZO.rss",
-        "NABU Berlin": "https://fetchrss.com/feed/1tBZgT1Tg4Cg1wVXekGWd7uP.rss",
         "Anfragen Abgeordnetenhaus": "https://www.parlament-berlin.de/rss/anfragen"
       }
     }

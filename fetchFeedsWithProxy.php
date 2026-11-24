@@ -20,6 +20,7 @@ define('LOG_FILE', LOG_DIR . '/feeds.log');
 define('STATUS_FILE', LOG_DIR . '/feed_status.json');
 define('LOCK_FILE', LOG_DIR . '/fetch.lock');
 define('LOG_MAX_BYTES', 1024 * 1024); // 1 MB Rotation
+define('MAX_FEED_BYTES', 5 * 1024 * 1024); // Max. 5 MB pro Feed-Antwort
 
 $jsonFilePathMitte = __DIR__ . '/feeds_mitte.json';
 $jsonFilePathBerlin = __DIR__ . '/feeds_berlin.json';
@@ -127,7 +128,7 @@ function fetchUrlFileGet($url) {
                 'verify_peer_name' => true
             ]
         ];
-        $content = @file_get_contents($url, false, stream_context_create($opts));
+        $content = @file_get_contents($url, false, stream_context_create($opts), 0, MAX_FEED_BYTES);
 
         $httpCode = null;
         $contentType = null;
@@ -185,6 +186,9 @@ function fetchUrlsParallel($urlsByName, $maxConcurrent = 5) {
                 CURLOPT_USERAGENT => USER_AGENT,
                 CURLOPT_SSL_VERIFYPEER => true,
                 CURLOPT_SSL_VERIFYHOST => 2,
+                CURLOPT_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
+                CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
+                CURLOPT_MAXFILESIZE => MAX_FEED_BYTES,
                 CURLOPT_HTTPHEADER => [
                     'Accept: text/xml, application/rss+xml, application/xml, */*;q=0.1',
                     'Accept-Language: de-DE,de;q=0.9'
@@ -457,7 +461,7 @@ function createJsonFile($configKey, $filePath, $feedConfigs, $keywords, $exclude
 
     $daysToShow = (int)($currentConfig['days_to_show'] ?? 10);
     $maxItems = (int)($currentConfig['max_items'] ?? 100);
-    $cutoffTimestamp = strtotime("-$daysToShow days") ?: 0;
+    $cutoffTimestamp = strtotime("today -$daysToShow days") ?: 0;
 
     // Alle URLs dieser Gruppe parallel abrufen
     $urlsToFetch = [];
@@ -505,7 +509,7 @@ function createJsonFile($configKey, $filePath, $feedConfigs, $keywords, $exclude
             }
 
             libxml_use_internal_errors(true);
-            $rss = @simplexml_load_string($fetch['content'], "SimpleXMLElement", LIBXML_NOCDATA);
+            $rss = @simplexml_load_string($fetch['content'], "SimpleXMLElement", LIBXML_NOCDATA | LIBXML_NONET);
             if ($rss === FALSE) {
                 $xmlErrors = libxml_get_errors();
                 $xmlDetail = !empty($xmlErrors) ? trim($xmlErrors[0]->message) : 'Unbekannter XML-Fehler';
@@ -805,7 +809,8 @@ if (in_array('--summary-md', $argv ?? [], true)) {
             $fails = (int)($info['consecutive_failures'] ?? 0);
             echo sprintf("| `%s` | %s | %s | %d |\n", $badge, $name, $detail, $fails);
             if ($fails >= 3) {
-                fwrite(STDERR, sprintf("::warning title=Feed defekt (%s)::Quelle '%s' ist %dx in Folge fehlgeschlagen: %s\n", $group, $name, $fails, $info['last_error'] ?? '-'));
+                $safeErr = preg_replace('/[\r\n]+/', ' ', (string)($info['last_error'] ?? '-'));
+                fwrite(STDERR, sprintf("::warning title=Feed defekt (%s)::Quelle '%s' ist %dx in Folge fehlgeschlagen: %s\n", $group, $name, $fails, $safeErr));
             }
         }
         echo "\n";
