@@ -160,12 +160,19 @@ ul li a:focus-visible {
 
 @media (max-width: 520px) {
     #tabContainer {
-        gap: 8px;
-        margin: 14px 10px 4px 10px;
+        gap: 5px;
+        margin: 12px 6px 4px 6px;
+        flex-wrap: nowrap;
+    }
+    .nav-group {
+        padding: 2px;
+        gap: 2px;
+        border-radius: 7px;
     }
     #tabContainer button {
-        padding: 7px 11px;
-        font-size: 0.86em;
+        padding: 6px 7px;
+        font-size: 0.78em;
+        border-radius: 5px;
     }
     header { padding: 13px 12px 10px 12px; }
     h1 { font-size: 1.4em; }
@@ -176,6 +183,13 @@ ul li a:focus-visible {
     }
     .feed-column, .date-block {
         padding: 14px;
+    }
+}
+
+@media (max-width: 370px) {
+    #tabContainer button {
+        padding: 5px 5px;
+        font-size: 0.73em;
     }
 }
 
