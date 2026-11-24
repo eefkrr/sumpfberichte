@@ -303,14 +303,18 @@ function parseFeedXml(SimpleXMLElement $rss) {
         if (isset($rss->channel->item)) {
             foreach ($rss->channel->item as $item) {
                 $dc = $item->children('http://purl.org/dc/elements/1.1/');
+                $dcterms = $item->children('http://purl.org/dc/terms/');
                 $pubDate = trim((string)($item->pubDate ?? ''));
                 if ($pubDate === '' && isset($dc->date)) {
                     $pubDate = trim((string)$dc->date);
                 }
+                $accessRights = isset($dcterms->accessRights) ? strtolower(trim((string)$dcterms->accessRights)) : '';
+                $isPaywall = in_array($accessRights, ['paid', 'subscription', 'paywall', 'plus'], true);
                 $items[] = [
                     'title' => trim((string)($item->title ?? '')),
                     'link' => trim((string)($item->link ?? '')),
-                    'pubDate' => $pubDate
+                    'pubDate' => $pubDate,
+                    'paywall' => $isPaywall
                 ];
             }
         }
