@@ -134,6 +134,9 @@
         "Spiegel (Berlin)": "https://fetchrss.com/rss/6735f7cd9cbc163441083f2267a9b16a98897553920ec822.xml",
         "Berliner Zeitung (Berlin)": "https://fetchrss.com/feed/1tBZgT1Tg4Cg1wVXak7Cj3WM.rss",
         "BZ (Berlin)": "https://fetchrss.com/feed/1tBZgT1Tg4Cg1xVUaC9um8ZO.rss",
+        "Grüne Fraktion Berlin": "https://gruene-fraktion.berlin/feed/",
+        "Changing Cities": "https://changing-cities.org/feed/",
+        "BUND Berlin": "https://fetchrss.com/feed/1tBZgT1Tg4Cg1xVmieDYI4CQ.rss",
         "Anfragen Abgeordnetenhaus": "https://www.parlament-berlin.de/rss/anfragen"
       }
     }
