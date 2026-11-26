@@ -253,7 +253,7 @@ function normalizeStringField($val) {
     return '';
 }
 
-function cleanArticleTitle($rawTitle) {
+function cleanArticleTitle($rawTitle, $sourceName = '') {
     // Zeilenumbrüche und Mehrfach-Leerzeichen normalisieren
     $t = preg_replace('/[\r\n\t]+/u', ' ', (string)$rawTitle);
     $t = preg_replace('/\s{2,}/u', ' ', trim($t));
@@ -269,7 +269,54 @@ function cleanArticleTitle($rawTitle) {
     $t = preg_replace('/^(Update|Live)\s+(?!:)/u', '$1: ', $t);
     $t = preg_replace('/^meinung\s*[•·-]\s*/iu', 'Meinung: ', $t);
 
+    // B.Z.-Spezialfix: FetchRSS klebt Kicker und Überschrift ohne Trennzeichen zusammen
+    if (stripos($sourceName, 'BZ') === 0) {
+        $t = fixBzGluedTitle($t);
+    }
+
     return ['title' => trim($t), 'paywall' => $paywall];
+}
+
+function fixBzGluedTitle($title) {
+    // Bekannte CamelCase-Eigennamen vorübergehend schützen
+    $protected = ['KaDeWe', 'iPhone', 'iPad', 'iOS', 'macOS', 'MacBook', 'AirPods', 'YouTube', 'TikTok', 'WhatsApp', 'LinkedIn', 'eBay', 'McDonald', 'PlayStation', 'eScooter', 'ePaper', 'gGmbH', 'ChatGPT', 'OpenAI', 'GitHub', 'PayPal', 'BioNTech', 'DeGeWo', 'Diakonie'];
+    $placeholders = [];
+    foreach ($protected as $idx => $word) {
+        if (stripos($title, $word) !== false) {
+            $token = "##PROT{$idx}##";
+            $placeholders[$token] = $word;
+            $title = str_ireplace($word, $token, $title);
+        }
+    }
+
+    // 1. Satzzeichen (? ! :) direkt vor Großbuchstabe/Zahl/Anführungszeichen -> Leerzeichen einfügen
+    $replaced = 0;
+    $title = preg_replace('/([?!:])([A-ZÄÖÜ„"«0-9])/u', '$1 $2', $title, 1, $replaced);
+    // 2. Punkt (z. B. Datum "26.11.Und", aber nicht Abkürzungen wie "B.Z.") vor Großbuchstabe
+    if (!$replaced) {
+        $title = preg_replace('/((?<!\b[A-ZÄÖÜ])\.)([A-ZÄÖÜ„"«])/u', '$1 $2', $title, 1, $replaced);
+    }
+    // 3. Kleinbuchstabe direkt vor öffnendem Anführungszeichen ("Beifall„Alles")
+    if (!$replaced) {
+        $title = preg_replace('/(\p{Ll})([„"«])/u', '$1. $2', $title, 1, $replaced);
+    }
+    // 4. Kleinbuchstabe direkt vor Zahl + Leerzeichen ("Verkauf300 Millionen")
+    if (!$replaced) {
+        $title = preg_replace('/(\p{Ll})(\d+\s)/u', '$1. $2', $title, 1, $replaced);
+    }
+    // 5. Zahl direkt vor Groß+Kleinbuchstabe ("Platz 6Altglienicke", "2026Hier")
+    if (!$replaced) {
+        $title = preg_replace('/(\d)(\p{Lu}\p{Ll})/u', '$1. $2', $title, 1, $replaced);
+    }
+    // 6. Kleinbuchstabe direkt vor Groß+Kleinbuchstabe ("Linken-ChefKubicki", "FridaySo")
+    if (!$replaced) {
+        $title = preg_replace('/(\p{Ll})(\p{Lu}\p{Ll})/u', '$1. $2', $title, 1, $replaced);
+    }
+
+    if (!empty($placeholders)) {
+        $title = str_replace(array_keys($placeholders), array_values($placeholders), $title);
+    }
+    return $title;
 }
 
 function isFetchRssPlaceholderItem($title, $link) {
@@ -606,7 +653,7 @@ function createJsonFile($configKey, $filePath, $feedConfigs, $keywords, $exclude
                 if ($rawTitle === '' || mb_strlen($rawTitle, 'UTF-8') > 300) {
                     continue;
                 }
-                $cleaned = cleanArticleTitle($rawTitle);
+                $cleaned = cleanArticleTitle($rawTitle, $name);
                 $titleText = $cleaned['title'];
                 $isPaywall = $cleaned['paywall'] || !empty($item['paywall']);
                 if ($titleText === '') {

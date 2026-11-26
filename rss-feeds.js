@@ -12,6 +12,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const loadingIndicator = document.getElementById('loadingIndicator');
     const lastUpdatedEl = document.getElementById('lastUpdated');
     const radarOnlyButton = document.getElementById('radarOnlyButton');
+    const sourceFilterButton = document.getElementById('sourceFilterButton');
+    const sourceFilterPanel = document.getElementById('sourceFilterPanel');
+    const sourceFilterList = document.getElementById('sourceFilterList');
+    const selectAllSourcesBtn = document.getElementById('selectAllSources');
+    const deselectAllSourcesBtn = document.getElementById('deselectAllSources');
 
     let loadingCount = 0;
     let activeRequestId = 0;
@@ -20,6 +25,63 @@ document.addEventListener('DOMContentLoaded', () => {
     let radarOnly = false;
     let currentData = null;
     const previousVisitByConfig = {};
+    const hiddenSourcesByConfig = {};
+
+    function getHiddenSources(configKey) {
+        if (hiddenSourcesByConfig[configKey]) return hiddenSourcesByConfig[configKey];
+        const set = new Set();
+        try {
+            const raw = localStorage.getItem(`hiddenSources_${configKey}`);
+            if (raw) {
+                const arr = JSON.parse(raw);
+                if (Array.isArray(arr)) arr.forEach(s => set.add(s));
+            }
+        } catch (e) {}
+        hiddenSourcesByConfig[configKey] = set;
+        return set;
+    }
+
+    function saveHiddenSources(configKey) {
+        try {
+            const arr = Array.from(getHiddenSources(configKey));
+            localStorage.setItem(`hiddenSources_${configKey}`, JSON.stringify(arr));
+        } catch (e) {}
+    }
+
+    function fixBzGluedTitle(title) {
+        const protectedWords = ['KaDeWe', 'iPhone', 'iPad', 'iOS', 'macOS', 'MacBook', 'AirPods', 'YouTube', 'TikTok', 'WhatsApp', 'LinkedIn', 'eBay', 'McDonald', 'PlayStation', 'eScooter', 'ePaper', 'gGmbH', 'ChatGPT', 'OpenAI', 'GitHub', 'PayPal', 'BioNTech', 'DeGeWo', 'Diakonie'];
+        const placeholders = [];
+        let t = String(title || '');
+        protectedWords.forEach((word, idx) => {
+            const re = new RegExp(escapeRegex(word), 'gi');
+            if (re.test(t)) {
+                const token = `##PROT${idx}##`;
+                placeholders.push([token, word]);
+                t = t.replace(re, token);
+            }
+        });
+
+        let changed = false;
+        const rules = [
+            [/([?!:])([A-ZÄÖÜ„"«0-9])/u, '$1 $2'],
+            [/((?<!\b[A-ZÄÖÜ])\.)([A-ZÄÖÜ„"«])/u, '$1 $2'],
+            [/(\p{Ll})([„"«])/u, '$1. $2'],
+            [/(\p{Ll})(\d+\s)/u, '$1. $2'],
+            [/(\d)(\p{Lu}\p{Ll})/u, '$1. $2'],
+            [/(\p{Ll})(\p{Lu}\p{Ll})/u, '$1. $2']
+        ];
+        for (const [re, rep] of rules) {
+            if (!changed && re.test(t)) {
+                t = t.replace(re, rep);
+                changed = true;
+            }
+        }
+
+        placeholders.forEach(([token, word]) => {
+            t = t.split(token).join(word);
+        });
+        return t;
+    }
 
     function getPreviousVisit(configKey) {
         if (Object.prototype.hasOwnProperty.call(previousVisitByConfig, configKey)) {
@@ -131,6 +193,47 @@ document.addEventListener('DOMContentLoaded', () => {
             radarOnlyButton.classList.toggle('active', radarOnly);
             radarOnlyButton.setAttribute('aria-pressed', radarOnly ? 'true' : 'false');
         }
+
+        if (sourceFilterButton) {
+            const hiddenCount = getHiddenSources(activeConfig).size;
+            sourceFilterButton.textContent = hiddenCount > 0 ? `⚙️ Filter (${hiddenCount})` : '⚙️ Filter';
+            sourceFilterButton.classList.toggle('active', hiddenCount > 0);
+        }
+    }
+
+    function renderSourceFilterPanel(data) {
+        if (!sourceFilterList || !data) return;
+        sourceFilterList.innerHTML = '';
+        const hidden = getHiddenSources(activeConfig);
+        const sources = Array.from(new Set(
+            Object.keys(data.feeds || {}).map(src => src.replace(/\s*\(.*?\)\s*/g, ''))
+        ));
+
+        const frag = document.createDocumentFragment();
+        sources.forEach(source => {
+            const label = document.createElement('label');
+            const isHidden = hidden.has(source);
+            label.className = isHidden ? 'source-chip is-hidden' : 'source-chip';
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.checked = !isHidden;
+            checkbox.addEventListener('change', () => {
+                if (checkbox.checked) hidden.delete(source);
+                else hidden.add(source);
+                label.classList.toggle('is-hidden', !checkbox.checked);
+                saveHiddenSources(activeConfig);
+                updateNavigationUI();
+                if (currentData) renderData(currentData, false);
+            });
+
+            const text = document.createElement('span');
+            text.textContent = source;
+
+            label.append(checkbox, text);
+            frag.appendChild(label);
+        });
+        sourceFilterList.appendChild(frag);
     }
 
     function updateLastUpdatedDisplay(data) {
@@ -303,10 +406,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const excludeRegex = compileCombinedExcludeRegex(data.config?.exclude_keywords || ['Grüne Woche']);
         const now = new Date();
         const prevVisit = getPreviousVisit(activeConfig);
+        const hiddenSources = getHiddenSources(activeConfig);
 
         Object.keys(data.feeds || {}).forEach(originalSource => {
             const feed = data.feeds[originalSource];
             const displaySource = originalSource.replace(/\s*\(.*?\)\s*/g, '');
+            if (hiddenSources.has(displaySource)) return;
 
             if (typeof feed === 'string' && feed.startsWith('❌')) {
                 articles.push({
@@ -333,7 +438,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 const pubDate = parseArticleDate(item);
                 if (!pubDate || pubDate > now || !isWithinLastDays(pubDate, daysToShow)) return;
 
-                const title = item.title || '(kein Titel)';
+                let title = item.title || '(kein Titel)';
+                if (displaySource === 'BZ') {
+                    title = fixBzGluedTitle(title);
+                }
                 const highlightClass = highlightKeywords(title, keywordRegex, excludeRegex);
                 if (radarOnly && !highlightClass) return;
 
@@ -364,8 +472,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const daysToShow = data.config?.days_to_show || 10;
 
             if (articles.length === 0) {
-                const msg = radarOnly
-                    ? 'Keine Schlagwort-Treffer in diesem Zeitraum gefunden.'
+                const hasHidden = getHiddenSources(activeConfig).size > 0;
+                const msg = (radarOnly || hasHidden)
+                    ? 'Keine Artikel für die aktuelle Filterauswahl gefunden.'
                     : `Keine Artikel in den letzten ${daysToShow} Tagen erfasst`;
                 showError(msg);
                 return;
@@ -477,11 +586,19 @@ document.addEventListener('DOMContentLoaded', () => {
             const perFeedMax = data.config?.max_items ? parseInt(data.config.max_items, 10) : 15;
             const daysToShow = data.config?.days_to_show || 10;
 
+            const hiddenSources = getHiddenSources(activeConfig);
             const grouped = {};
             Object.keys(data.feeds || {}).forEach(src => {
                 const displaySrc = src.replace(/\s*\(.*?\)\s*/g, '');
-                grouped[displaySrc] = [];
+                if (!hiddenSources.has(displaySrc)) {
+                    grouped[displaySrc] = [];
+                }
             });
+
+            if (Object.keys(grouped).length === 0) {
+                showError('Alle Quellen sind aktuell über den Filter ausgeblendet.');
+                return;
+            }
 
             articles.forEach(art => {
                 if (grouped[art.source] && grouped[art.source].length < perFeedMax) {
@@ -531,8 +648,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function renderData(data) {
+    function renderData(data, rebuildFilter = true) {
         updateLastUpdatedDisplay(data);
+        if (rebuildFilter) renderSourceFilterPanel(data);
         if (activeView === 'categories') displayFeedsByCategory(data);
         else displayFeedsByDate(data);
     }
@@ -575,7 +693,37 @@ document.addEventListener('DOMContentLoaded', () => {
         radarOnlyButton.addEventListener('click', () => {
             radarOnly = !radarOnly;
             updateNavigationUI();
-            if (currentData) renderData(currentData);
+            if (currentData) renderData(currentData, false);
+        });
+    }
+
+    if (sourceFilterButton && sourceFilterPanel) {
+        sourceFilterButton.addEventListener('click', () => {
+            const willOpen = sourceFilterPanel.hidden;
+            sourceFilterPanel.hidden = !willOpen;
+            sourceFilterButton.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+        });
+    }
+
+    if (selectAllSourcesBtn) {
+        selectAllSourcesBtn.addEventListener('click', () => {
+            getHiddenSources(activeConfig).clear();
+            saveHiddenSources(activeConfig);
+            updateNavigationUI();
+            if (currentData) renderData(currentData, true);
+        });
+    }
+
+    if (deselectAllSourcesBtn) {
+        deselectAllSourcesBtn.addEventListener('click', () => {
+            if (!currentData) return;
+            const hidden = getHiddenSources(activeConfig);
+            Object.keys(currentData.feeds || {}).forEach(src => {
+                hidden.add(src.replace(/\s*\(.*?\)\s*/g, ''));
+            });
+            saveHiddenSources(activeConfig);
+            updateNavigationUI();
+            renderData(currentData, true);
         });
     }
 

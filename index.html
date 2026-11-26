@@ -9,7 +9,7 @@
     <meta name="referrer" content="no-referrer">
     <meta name="theme-color" content="#005538">
     <title>Nachrichten aus Berlin 🌻 Mitte</title>
-    <link rel="stylesheet" href="styles.css?v=5">
+    <link rel="stylesheet" href="styles.css?v=6">
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <link rel="icon" href="favicon.ico" type="image/x-icon">
     <link rel="apple-touch-icon" sizes="128x128" href="favicon-128x128.png">
@@ -33,7 +33,18 @@
             </div>
             <div class="nav-group" role="group" aria-label="Filter">
                 <button id="radarOnlyButton" type="button" aria-pressed="false" title="Nur Schlagwort-Treffer anzeigen">🎯 Radar</button>
+                <button id="sourceFilterButton" type="button" aria-expanded="false" aria-controls="sourceFilterPanel" title="Quellen ein- und ausblenden">⚙️ Filter</button>
             </div>
+        </div>
+        <div id="sourceFilterPanel" class="source-filter-panel" hidden>
+            <div class="source-filter-header">
+                <span class="source-filter-title">Quellen filtern</span>
+                <div class="source-filter-actions">
+                    <button id="selectAllSources" type="button" class="filter-action-btn">Alle</button>
+                    <button id="deselectAllSources" type="button" class="filter-action-btn">Keine</button>
+                </div>
+            </div>
+            <div id="sourceFilterList" class="source-filter-list"></div>
         </div>
     </nav>
 
@@ -52,6 +63,6 @@
         </div>
     </noscript>
 
-    <script src="rss-feeds.js?v=7" defer></script>
+    <script src="rss-feeds.js?v=8" defer></script>
 </body>
 </html>
