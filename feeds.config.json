@@ -17,8 +17,8 @@
     "AfD",
     "SPD",
     "FDP",
-    "Die Linke",
-    "Linken",
+    "Linke",
+    "Linksfraktion",
     "BSW",
     "Volt",
     "Remlinger",
@@ -91,7 +91,9 @@
   "exclude_keywords": [
     "Grüne Woche",
     "Grüne Welle",
-    "Grüner Pfeil"
+    "Grüner Pfeil",
+    "linke Spur",
+    "linke Fahrspur"
   ],
   "groups": {
     "mitte": {
